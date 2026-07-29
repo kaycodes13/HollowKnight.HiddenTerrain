@@ -2,9 +2,9 @@
 
 A mod for Hollow Knight that makes the environment invisible.
 
-![image](https://raw.githubusercontent.com/kaycodes13/HollowKnight.HiddenTerrain/refs/heads/main/preview.png)
+![Screenshot of The Knight sitting on the bench in Dirtmouth. The ground is completely gone; the only things visible around them are Elderbug and some blurry buildings in the background.](https://raw.githubusercontent.com/kaycodes13/HollowKnight.HiddenTerrain/refs/heads/main/preview.png)
 
-If you find a particular room, object, or boss that looks wrong, please [open an issue on the GitHub repository](https://github.com/kaycodes13/HollowKnight.EdgeDetection/issues/new/choose).
+If you find a particular room, object, or boss that looks wrong, please [open an issue on the GitHub repository](https://github.com/kaycodes13/HollowKnight.HiddenTerrain/issues/new/choose).
 
 Donation Link: https://ko-fi.com/kaykao
 
