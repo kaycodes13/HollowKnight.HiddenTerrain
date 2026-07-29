@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net472</TargetFramework>
+		<RootNamespace>$(AssemblyTitle)</RootNamespace>
+		<AssemblyName>$(AssemblyTitle)</AssemblyName>
+		<Product>$(AssemblyTitle)</Product>
+		<AssemblyVersion>$(Version)</AssemblyVersion>
+		<Copyright>Copyright © $(Authors) 2026</Copyright>
+		<NoWarn>7035</NoWarn>
+		<Deterministic>false</Deterministic>
+		<OutputPath>bin/$(Configuration)/</OutputPath>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<EnableNETAnalyzers>True</EnableNETAnalyzers>
+		<AnalysisMode>recommended</AnalysisMode>
+
+		<HollowKnightRefs>../API</HollowKnightRefs>
+		<ExportDir>bin/Publish</ExportDir>
+
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<NeutralLanguage>EN</NeutralLanguage>
+
+		<!-- Shortens and anonymizes paths in debug symbols relative to the project directory. Breakpoints will not work, however. -->
+		<PathMap Condition="'$(Configuration)' == 'Release'">$(MSBuildProjectDirectory)=/</PathMap>
+	</PropertyGroup>
+
+	<Import Project="LocalOverrides.targets" Condition="Exists('LocalOverrides.targets')" />
+
+	<ItemGroup>
+		<None Include="README.md" />
+		<None Include="preview.png" />
+		<None Include=".gitignore" />
+		<None Include="LocalOverrides.targets" />
+		<EmbeddedResource Include="Assets/**/*" />
+		<EmbeddedResource Include="Languages/**/*" />
+		<Compile Remove="Shaders/*" />
+		<None Include="Shaders/*" />
+	</ItemGroup>
+
+	<!-- Modding API & Game References -->
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Unity.Analyzers" Version="1.26.0" PrivateAssets="all" />
+		
+		<!-- Accessing internals without reflection. https://github.com/BepInEx/BepInEx.AssemblyPublicizer -->
+		<PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
+
+		<Reference Include="$(HollowKnightRefs)/Assembly*.dll;$(HollowKnightRefs)/Unity*.dll" Exclude="$(HollowKnightRefs)/unityscenerepacker.dll" Private="false" Publicize="true" />
+		<Reference Include="$(HollowKnightRefs)/Mono*.dll;$(HollowKnightRefs)/MMHOOK*.dll;$(HollowKnightRefs)/GalaxyCSharp.dll;$(HollowKnightRefs)/netstandard.dll;$(HollowKnightRefs)/Newtonsoft.Json.dll;$(HollowKnightRefs)/PlayMaker.dll" Private="false" Publicize="false" />
+		
+		<Reference Include="System.ComponentModel.Composition">
+			<HintPath>$(HollowKnightRefs)/System.ComponentModel.Composition.dll</HintPath>
+		</Reference>
+		<Reference Include="System.Configuration">
+			<HintPath>$(HollowKnightRefs)/System.Configuration.dll</HintPath>
+		</Reference>
+		<Reference Include="System.Diagnostics.StackTrace">
+			<HintPath>$(HollowKnightRefs)/System.Diagnostics.StackTrace.dll</HintPath>
+		</Reference>
+		<Reference Include="System.EnterpriseServices">
+			<HintPath>$(HollowKnightRefs)/System.EnterpriseServices.dll</HintPath>
+		</Reference>
+		<Reference Include="System.Globalization.Extensions">
+			<HintPath>$(HollowKnightRefs)/System.Globalization.Extensions.dll</HintPath>
+		</Reference>
+		<Reference Include="System.IO.Compression">
+			<HintPath>$(HollowKnightRefs)/System.IO.Compression.dll</HintPath>
+		</Reference>
+		<Reference Include="System.Net.Http">
+			<HintPath>$(HollowKnightRefs)/System.Net.Http.dll</HintPath>
+		</Reference>
+		<Reference Include="System.Runtime.Serialization.Xml">
+			<HintPath>$(HollowKnightRefs)/System.Runtime.Serialization.Xml.dll</HintPath>
+		</Reference>
+		<Reference Include="System.ServiceModel.Internals">
+			<HintPath>$(HollowKnightRefs)/System.ServiceModel.Internals.dll</HintPath>
+		</Reference>
+		<Reference Include="System.Transactions">
+			<HintPath>$(HollowKnightRefs)/System.Transactions.dll</HintPath>
+		</Reference>
+		<Reference Include="System.Xml.XPath.XDocument">
+			<HintPath>$(HollowKnightRefs)/System.Xml.XPath.XDocument.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+	<!-- Package for release -->
+	<Target Name="CopyMod" AfterTargets="PostBuildEvent">
+		<ItemGroup>
+			<OutputFiles Include="$(TargetPath)" />
+			<OutputFiles Include="$(TargetDir)/$(TargetName).pdb" />
+		</ItemGroup>
+		<RemoveDir Directories="$(ExportDir)/" />
+		<MakeDir Directories="$(ExportDir)/" />
+		<MakeDir Directories="$(ExportDir)/zip/" />
+		<MakeDir Condition="!Exists('$(HollowKnightRefs)/Mods/$(TargetName)/')" Directories="$(HollowKnightRefs)/Mods/$(TargetName)/" />
+		<Copy SourceFiles="@(OutputFiles)" DestinationFolder="$(HollowKnightRefs)/Mods/$(TargetName)/" />
+		<Copy SourceFiles="$(SolutionDir)/README.md;@(OutputFiles)" DestinationFolder="$(ExportDir)/zip/" />
+		<ZipDirectory SourceDirectory="$(ExportDir)/zip/" DestinationFile="$(ExportDir)/$(TargetName).zip" />
+		<RemoveDir Directories="$(ExportDir)/zip/" />
+	</Target>
+
+</Project>

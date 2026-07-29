@@ -1,0 +1,31 @@
+{
+  "Objects": [
+    "water_fog",
+    "Fungus_Steam",
+    "acid_bursts",
+    "acid_bubbles",
+    "Ripple",
+    "abyss_water_top",
+    "spike_back",
+    "wp_saw"
+  ],
+  "ObjectsRegex": [
+    ".*water_components.*",
+    "acid_top.*",
+    "centipede_pit.*",
+    "fungd_spike.*",
+    "hive_charm_spike.*",
+    "Enemy_spike.*",
+    "white_spike.*",
+    "core_extras_002[2,3]{1}_wp",
+    "hot_spring.*water_glow",
+    "hot_spring.*Color-Balance.*"
+  ],
+  "Parents": [
+    "abyss_black-water",
+    "bone_spike_pit"
+  ],
+  "ParentsRegex": [
+    "abyss_wall_spike.*"
+  ]
+}

@@ -1,0 +1,101 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      # when you're ready to release the mod, change this to 'true'
+      allow-release: 'true'
+      version: ${{ steps.version.outputs.version }}
+      is-new-version: ${{ !fromJSON(steps.needs-release.outputs.exists || 'true') }}
+      attestation-url: ${{ steps.attest.outputs.attestation-url }}
+      build-artifact-id: ${{ steps.build-artifact.outputs.artifact-id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup MAPI
+        uses: BadMagic100/setup-hk@v3
+        with:
+          apiPath: ../API
+          # if the mod has dependencies, change this to the path to
+          # your ModDependencies.txt and uncomment it
+          dependencyFilePath: ./ModDependencies.txt
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+      
+      - name: Install dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build -c Release --verbosity normal
+
+      - name: Get Version
+        id: version
+        run: |-
+          VERSION=$(dotnet build EdgeDetection.csproj -getProperty:Version)
+          echo Version is $VERSION
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Prepare artifacts for release
+        id: build-artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: bin/Publish/*.zip
+          archive: false
+
+      - name: Check if release needed
+        id: needs-release
+        uses: mukunku/tag-exists-action@v1.7.0
+        if: github.event_name == 'push'
+        with:
+          tag: v${{ steps.version.outputs.version }}
+
+      - name: Generate attestation
+        id: attest
+        if: github.event_name == 'push' && steps.needs-release.outputs.exists == 'false'
+        uses: actions/attest@v4
+        with:
+          subject-path: bin/Publish/*.zip
+
+  # Publish to GitHub releases to keep release history on the repository (needed for this workflow to work properly
+  # but is also nice for multiple other reasons such as auto-tagging *after* a build success)
+  release:
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    # only make a release if the version has changed and releases are allowed above
+    if: github.event_name == 'push' && needs.build.outputs.allow-release == 'true' && needs.build.outputs.is-new-version == 'true'
+
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ needs.build.outputs.build-artifact-id }}
+          path: artifacts/Publish
+          skip-decompress: true
+
+      - name: Release
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: false
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          tag_name: v${{ needs.build.outputs.version }}
+          body: |
+            Build attested at ${{ needs.build.outputs.attestation-url }}
+          files: |
+            artifacts/Publish/*.zip
