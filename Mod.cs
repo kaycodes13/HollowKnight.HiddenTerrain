@@ -33,9 +33,9 @@ public class Mod : Modding.Mod, IGlobalSettings<ModSettings>, ITogglableMod, IMe
 
 	public Mod() : base("Hidden Terrain") {
 		Inst = this;
-		#if DEBUG
+#if DEBUG
 		Log("--- This is a development build ---");
-		#endif
+#endif
 	}
 
 	#endregion
@@ -69,11 +69,15 @@ public class Mod : Modding.Mod, IGlobalSettings<ModSettings>, ITogglableMod, IMe
 
 	#region Internals
 
+#if DEBUG
 	static float
-		clipNear = 25f,
-		clipFar = 7f;
+#else
+	const float
+#endif
+		CLIP_NEAR = 25f,
+		CLIP_FAR = 7f;
 
-	static readonly int[] SHOW_LAYERS = [.. new PhysLayers[] {
+	static readonly HashSet<int> SHOW_LAYERS = [.. new PhysLayers[] {
 		PhysLayers.ENEMIES,
 		PhysLayers.ENEMY_ATTACK,
 		PhysLayers.PROJECTILES,
@@ -83,12 +87,28 @@ public class Mod : Modding.Mod, IGlobalSettings<ModSettings>, ITogglableMod, IMe
 		PhysLayers.HERO_DETECTOR,
 	}.Cast<int>()];
 
+	static readonly HashSet<string> IGNORE_FSMS = [
+		"damages_enemy",
+		"Spike Hit Effect",
+		"breakable_wall",
+		"breakable_wall_v2",
+		"random_audio_loop_start",
+	];
+
 	static readonly NamedTraps
 		namedTraps = Utils.ReadJsonAsset<NamedTraps>("trap_names.json");
 
 	static readonly List<Renderer>
 		knownTerrain = [],
 		knownTraps = [];
+
+	static bool HasUnhidableFSM(Transform t) =>
+		t.GetComponents<PlayMakerFSM>() is var fsms
+		&& fsms.Length > 0
+		&& !fsms.Any(x => IGNORE_FSMS.Contains(x.FsmName) || (x.FsmTemplate && IGNORE_FSMS.Contains(x.FsmTemplate.name)));
+
+	static void Toggle(List<Renderer> renderers, bool val)
+		=> renderers.ForEach(x => { if (x) x.enabled = val; });
 
 	#endregion
 
@@ -99,9 +119,9 @@ public class Mod : Modding.Mod, IGlobalSettings<ModSettings>, ITogglableMod, IMe
 
 		USceneManager.activeSceneChanged += SceneChangedHook;
 
-		knownTerrain.ForEach(x => x.enabled = false);
+		Toggle(knownTerrain, false);
 		if (!Settings.showTraps)
-			knownTraps.ForEach(x => x.enabled = false);
+			Toggle(knownTraps, false);
 
 		Settings.modEnabled = true;
 
@@ -115,8 +135,8 @@ public class Mod : Modding.Mod, IGlobalSettings<ModSettings>, ITogglableMod, IMe
 
 		USceneManager.activeSceneChanged -= SceneChangedHook;
 
-		knownTerrain.ForEach(x => x.enabled = true);
-		knownTraps.ForEach(x => x.enabled = true);
+		Toggle(knownTerrain, true);
+		Toggle(knownTraps, true);
 
 		Log("Mod Disabled!");
 	}
@@ -139,19 +159,21 @@ public class Mod : Modding.Mod, IGlobalSettings<ModSettings>, ITogglableMod, IMe
 			yield break;
 
 		float heroZ = HeroController.instance.transform.position.z,
-			nearZ = heroZ - clipNear,
-			farZ = heroZ + clipFar;
+			nearZ = heroZ - CLIP_NEAR,
+			farZ = heroZ + CLIP_FAR;
 
 		foreach (Transform t in Utils.WalkHierarchy(scene.GetRootGameObjects())) {
 			if (
 				!t.gameObject.activeInHierarchy
 				|| (t.position.z < nearZ || t.position.z > farZ)
 				|| SHOW_LAYERS.Contains(t.gameObject.layer)
-				|| t.GetComponent<PlayMakerFSM>()
-				|| t.GetComponent<RestBench>()
-				|| t.GetComponent<BlurPlane>()
 				|| !t.TryGetComponent<Renderer>(out var renderer)
 				|| !renderer.enabled
+				|| t.GetComponent<RestBench>()
+				|| t.GetComponent<BlurPlane>()
+				|| HasUnhidableFSM(t)
+				// that one bench in qg that's two separate objects for no reason
+				|| (scene.name == "Fungus1_24" && t.name == "guardian_bench")
 			)
 				continue;
 
