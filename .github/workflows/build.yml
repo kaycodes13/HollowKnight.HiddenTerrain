@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       # when you're ready to release the mod, change this to 'true'
-      allow-release: 'true'
+      allow-release: 'false'
       version: ${{ steps.version.outputs.version }}
       is-new-version: ${{ !fromJSON(steps.needs-release.outputs.exists || 'true') }}
       attestation-url: ${{ steps.attest.outputs.attestation-url }}
@@ -46,7 +46,7 @@ jobs:
       - name: Get Version
         id: version
         run: |-
-          VERSION=$(dotnet build EdgeDetection.csproj -getProperty:Version)
+          VERSION=$(dotnet build HiddenTerrain.csproj -getProperty:Version)
           echo Version is $VERSION
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
