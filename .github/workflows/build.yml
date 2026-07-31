@@ -67,7 +67,7 @@ jobs:
       - name: Generate attestation
         id: attest
         if: github.event_name == 'push' && steps.needs-release.outputs.exists == 'false'
-        uses: actions/attest@v4
+        uses: actions/attest@v4.2.0
         with:
           subject-path: bin/Publish/*.zip
 
